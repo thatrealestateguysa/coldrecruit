@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cold Recruit Machine Dashboard</title>
+  <style>
+    :root{
+      --bg:#0f141b;          /* page background */
+      --panel:#171e27;       /* cards/tables */
+      --panel-2:#1d2632;     /* inputs */
+      --text:#eaf0f7;        /* main text */
+      --muted:#a3afbf;       /* secondary */
+      --accent:#c70000;      /* KW red */
+      --border:#2b3647;      /* borders */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1280px;margin:24px auto;padding:0 16px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.2px;color:var(--accent)}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    button,select,input[type="text"]{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;outline:none}
+    button:hover,select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(199,0,0,.22)}
+
+    /* STATUS TABS */
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:8px 0 16px}
+    .stat{background:var(--panel);border:1px solid var(--border);padding:14px;border-radius:14px;text-align:center;cursor:pointer;transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease}
+    .stat{border-top:3px solid var(--accent)}
+    .stat .num{font-size:22px;font-weight:800;color:var(--accent)}
+    .stat .label{margin-top:6px;font-size:12px;color:var(--muted)}
+    .stat:hover{transform:translateY(-1px);border-color:var(--accent)}
+    .stat.active{box-shadow:inset 0 0 0 2px var(--accent);background:#0c1219}
+
+    /* TOOLBAR */
+    .sticky{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 80%, rgba(15,20,27,.6));padding-top:6px}
+    .toolbar{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;border-bottom:2px solid var(--accent);padding-bottom:10px;margin-bottom:12px}
+    .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .filters .label{font-size:12px;color:var(--muted);margin-right:6px}
+    .bulk{display:flex;gap:8px;align-items:center}
+
+    /* TABLE */
+    .table{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    table{width:100%;border-collapse:collapse}
+    thead th{text-align:left;font-size:12px;color:var(--muted);background:#1a2230;padding:12px;border-bottom:2px solid var(--accent)}
+    tbody td{padding:12px;border-top:1px solid #233045;font-size:14px;vertical-align:middle}
+    tbody tr:nth-child(odd) td{background:#141c27}
+    a.link{color:#8fd0ff;text-decoration:none;font-weight:700}
+    a.link:hover{text-decoration:underline}
+
+    .status-select{background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px}
+    .checkbox{width:18px;height:18px}
+    .note{width:280px;max-width:280px;min-width:220px;height:36px;padding:8px 10px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);color:var(--text)}
+    .note.saving{border-color:#d97706}
+    .note.saved{border-color:#1f9d55}
+
+    .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel-2);font-size:11px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Cold Recruit Machine</h1>
+      <div class="actions">
+        <button id="rerun">Re-run Automations</button>
+        <button id="reload">Reload</button>
+      </div>
+    </header>
+
+    <!-- Top status tabs -->
+    <div id="stats" class="stats" aria-label="Status tabs"></div>
+
+    <div class="sticky">
+      <div class="toolbar">
+        <div class="filters">
+          <span class="label">Filters</span>
+          <select id="filterAgency">
+            <option value="__ALL__">Agency (all)</option>
+          </select>
+          <select id="filterStatus">
+            <option value="__ALL__">All statuses</option>
+          </select>
+          <input id="search" type="text" placeholder="Search name or surname…" style="min-width:260px" />
+          <button id="reset">Reset</button>
+        </div>
+        <div class="bulk">
+          <select id="bulkStatus" class="status-select"></select>
+          <button id="applyBulk">Apply to Selected</button>
+          <button id="clearSel">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px"><input id="checkAll" class="checkbox" type="checkbox" /></th>
+            <th>Status</th>
+            <th>WhatsApp</th>
+            <th>Name</th>
+            <th>Surname</th>
+            <th>Cell Nr</th>
+            <th>Email</th>
+            <th>Agency</th>
+            <th>Last Contact</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // ===== CONFIG =====
+    const API_BASE = "https://script.google.com/macros/s/AKfycbwyURwawIavmhuOgHgnfXcfRpSqFi615TC5te9GP830s3hWdoOauQjykNlp1Xp74Z5QsQ/exec"; // your live Apps Script Web App
+
+    const STATUS_OPTIONS = [
+      "To Contact","Whatsapp","Reply","Keen to meet","Cultivate",
+      "Invite to events","Not interested","No Whatsapp","Unsubscribe","Referred"
+    ];
+
+    // Friendly header aliasing (front-end only) so we read sheets that aren't perfect
+    const HEADER_ALIASES = {
+      'STATUS': ["STATUS","STATE"],
+      'WHATSAPP LINK': ["WHATSAPP LINK","WHATSAPP","WA LINK","WALINK","WHATSAPP_URL","WA_URL"],
+      'NAME': ["NAME","FIRST","FIRST NAME"],
+      'SURNAME': ["SURNAME","LAST","LAST NAME"],
+      'CELL NR': ["CELL NR","CELL","CELL PHONE","CELLPHONE","MOBILE","PHONE","CONTACT NUMBER"],
+      'EMAIL': ["EMAIL","E-MAIL","MAIL"],
+      'AGENCY': ["AGENCY","OFFICE","BROKER","BROKERAGE","COMPANY"],
+      'LAST CONTACT DATE': ["LAST CONTACT DATE","LAST CONTACT","LAST CONTACTED","LAST UPDATED"],
+      'NOTES': ["NOTES","NOTE","COMMENTS","COMMENT","REMARKS"]
+    };
+
+    const els = {
+      stats: document.getElementById('stats'),
+      rows: document.getElementById('rows'),
+      search: document.getElementById('search'),
+      filterAgency: document.getElementById('filterAgency'),
+      filterStatus: document.getElementById('filterStatus'),
+      reset: document.getElementById('reset'),
+      bulkStatus: document.getElementById('bulkStatus'),
+      applyBulk: document.getElementById('applyBulk'),
+      clearSel: document.getElementById('clearSel'),
+      checkAll: document.getElementById('checkAll'),
+      rerun: document.getElementById('rerun'),
+      reload: document.getElementById('reload')
+    };
+
+    let raw = []; // full sheet
+    let map = {}; // header -> index (0-based)
+
+    function headerMap(headers){
+      const idx = {};
+      const upper = headers.map(h => String(h||'').trim().toUpperCase());
+      const keys = Object.keys(HEADER_ALIASES);
+      keys.forEach(key => {
+        const candidates = HEADER_ALIASES[key].map(s => s.toUpperCase());
+        let found = -1;
+        for(let i=0;i<upper.length;i++){
+          if(candidates.includes(upper[i])){ found = i; break; }
+        }
+        if(found === -1){ // partial contains fallback
+          for(let i=0;i<upper.length;i++){
+            if(!upper[i]) continue;
+            if(candidates.some(a => upper[i].includes(a))){ found = i; break; }
+          }
+        }
+        idx[key] = (found >= 0 ? found : -1);
+      });
+      return idx;
+    }
+
+    const fmtDate = v => {
+      if(!v) return '';
+      const d = new Date(v);
+      return isNaN(d) ? '' : d.toLocaleDateString();
+    };
+
+    const option = (v, sel=false) => `<option value="${v}" ${sel?'selected':''}>${v}</option>`;
+
+    function toRows(data){
+      const out = [];
+      for(let i=1;i<data.length;i++){
+        const r = data[i]||[];
+        out.push({
+          _i: i,         // sheet row index in data[][]
+          _r0: i-1,      // 0-based row index expected by backend
+          status: r[map['STATUS']] ?? '',
+          wa: r[map['WHATSAPP LINK']] ?? '',
+          name: r[map['NAME']] ?? '',
+          surname: r[map['SURNAME']] ?? '',
+          cell: r[map['CELL NR']] ?? '',
+          email: r[map['EMAIL']] ?? '',
+          agency: r[map['AGENCY']] ?? '',
+          last: r[map['LAST CONTACT DATE']] ?? '',
+          notes: r[map['NOTES']] ?? ''
+        });
+      }
+      return out;
+    }
+
+    function uniqueAgencies(rows){
+      const s = new Set();
+      rows.forEach(r => { const a=(r.agency||'').toString().trim(); if(a) s.add(a); });
+      return Array.from(s).sort((a,b)=>a.localeCompare(b));
+    }
+
+    function populateFilters(rows){
+      // Agency
+      const agencies = uniqueAgencies(rows);
+      els.filterAgency.innerHTML = '<option value="__ALL__">Agency (all)</option>' + agencies.map(a=>option(a)).join('');
+      // Status
+      els.filterStatus.innerHTML = '<option value="__ALL__">All statuses</option>' + STATUS_OPTIONS.map(s=>option(s)).join('');
+      // Bulk
+      if(!els.bulkStatus.options.length){ els.bulkStatus.innerHTML = STATUS_OPTIONS.map(s=>option(s)).join(''); }
+    }
+
+    function applyFilters(rows){
+      const q = (els.search.value||'').trim().toLowerCase();
+      const agency = els.filterAgency.value;
+      const status = els.filterStatus.value;
+      let out = rows;
+      if(agency && agency !== '__ALL__') out = out.filter(r => String(r.agency||'') === agency);
+      if(status && status !== '__ALL__') out = out.filter(r => String(r.status||'') === status);
+      if(q){ out = out.filter(r => `${r.name} ${r.surname}`.toLowerCase().includes(q)); }
+      return out;
+    }
+
+    function renderStats(rows){
+      const counts = { total: rows.length };
+      STATUS_OPTIONS.forEach(s => counts[s] = 0);
+      rows.forEach(r => { if(counts.hasOwnProperty(r.status)) counts[r.status]++; });
+      const active = (els.filterStatus.value && els.filterStatus.value !== '__ALL__') ? els.filterStatus.value : '__TOTAL__';
+      const blocks = [{key:'__TOTAL__', label:'Total', num:counts.total}]
+        .concat(STATUS_OPTIONS.map(s=>({key:s,label:s,num:counts[s]})));
+      els.stats.innerHTML = blocks.map(b => `
+        <div class="stat ${active===b.key?'active':''}" data-status="${b.key}" role="button" tabindex="0" aria-pressed="${active===b.key}">
+          <div class="num">${b.num||0}</div>
+          <div class="label">${b.label}</div>
+        </div>`).join('');
+      // Click/keyboard
+      els.stats.querySelectorAll('.stat').forEach(st => {
+        const go = async () => {
+          const key = st.getAttribute('data-status');
+          const selected = getSelectedRows0();
+          // If rows selected & a specific status tab clicked -> move them immediately
+          if(key !== '__TOTAL__' && selected.length){
+            await apiPost('bulkUpdateStatus', { rowIndices: selected, newStatus: key });
+            els.filterStatus.value = key; // focus filtered view after move
+            await load();
+            scrollToTable();
+            return;
+          }
+          // else: act as a filter tab
+          els.filterStatus.value = (key==='__TOTAL__')?'__ALL__':key;
+          refresh();
+          scrollToTable();
+        };
+        st.addEventListener('click', go);
+        st.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); }});
+      });
+    }
+
+    function renderTable(rows){
+      els.rows.innerHTML = rows.map(r => {
+        const wa = r.wa ? `<a class="link" href="${r.wa}" target="_blank" rel="noopener">Open Chat</a>` : '';
+        const statusSel = `<select class="status-select" data-r0="${r._r0}">`+
+          STATUS_OPTIONS.map(s=>`<option value="${s}" ${s===r.status?'selected':''}>${s}</option>`).join('')+
+          `</select>`;
+        const noteVal = String(r.notes||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+        const note = `<input class="note" type="text" value="${noteVal}" data-r0="${r._r0}" placeholder="Add note…" />`;
+        return `<tr>
+          <td><input class="checkbox row-check" type="checkbox" data-r0="${r._r0}" /></td>
+          <td>${statusSel}</td>
+          <td>${wa}</td>
+          <td>${r.name||''}</td>
+          <td>${r.surname||''}</td>
+          <td>${r.cell||''}</td>
+          <td>${r.email||''}</td>
+          <td>${r.agency||''}</td>
+          <td>${fmtDate(r.last)}</td>
+          <td>${note}</td>
+        </tr>`;
+      }).join('');
+
+      // Status change handlers
+      document.querySelectorAll('select.status-select').forEach(sel => {
+        sel.addEventListener('change', async e => {
+          const r0 = Number(e.target.getAttribute('data-r0'));
+          const newStatus = e.target.value;
+          await apiPost('updateSingleStatus', { rowIndex: r0, newStatus });
+        });
+      });
+
+      // Notes handlers (debounced save on input + blur)
+      document.querySelectorAll('input.note').forEach(inp => {
+        const save = debounce(async () => {
+          const r0 = Number(inp.getAttribute('data-r0'));
+          inp.classList.add('saving');
+          await apiPost('updateNote', { rowIndex: r0, note: inp.value });
+          inp.classList.remove('saving');
+          inp.classList.add('saved');
+          setTimeout(()=>inp.classList.remove('saved'), 900);
+        }, 400);
+        inp.addEventListener('input', save);
+        inp.addEventListener('blur', async () => {
+          const r0 = Number(inp.getAttribute('data-r0'));
+          inp.classList.add('saving');
+          await apiPost('updateNote', { rowIndex: r0, note: inp.value });
+          inp.classList.remove('saving');
+          inp.classList.add('saved');
+          setTimeout(()=>inp.classList.remove('saved'), 900);
+        });
+      });
+    }
+
+    function refresh(){
+      const rows = toRows(raw);
+      const filtered = applyFilters(rows);
+      renderStats(filtered);
+      renderTable(filtered);
+    }
+
+    async function load(){
+      const res = await fetch(API_BASE);
+      const json = await res.json();
+      if(json.result !== 'success') throw new Error(json.message || 'Failed to load');
+      raw = json.data || [];
+      map = headerMap(raw[0] || []);
+      const rows = toRows(raw);
+      populateFilters(rows);
+      refresh();
+    }
+
+    // ===== API helpers =====
+    async function apiPost(action, payload){
+      const res = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action, payload }) });
+      const json = await res.json();
+      if(json.result !== 'success'){ alert(json.message || 'Action failed'); }
+      return json;
+    }
+
+    // ===== UX helpers =====
+    function getSelectedRows0(){
+      return Array.from(document.querySelectorAll('.row-check:checked')).map(cb => Number(cb.getAttribute('data-r0')));
+    }
+    function scrollToTable(){
+      const tbl = document.querySelector('.table'); if(tbl) tbl.scrollIntoView({ behavior:'smooth', block:'start' });
+      setTimeout(()=>{ const first = document.querySelector('select.status-select'); if(first) first.focus(); }, 250);
+    }
+    function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn.apply(this,args), ms); }; }
+
+    // ===== Events =====
+    els.search.addEventListener('input', refresh);
+    els.filterAgency.addEventListener('change', refresh);
+    els.filterStatus.addEventListener('change', refresh);
+    els.reset.addEventListener('click', () => { els.search.value=''; els.filterAgency.value='__ALL__'; els.filterStatus.value='__ALL__'; refresh(); });
+
+    els.checkAll.addEventListener('change', (e) => {
+      document.querySelectorAll('.row-check').forEach(cb => cb.checked = e.target.checked);
+    });
+
+    els.applyBulk.addEventListener('click', async () => {
+      const selected = getSelectedRows0();
+      if(!selected.length) return alert('Select at least one row');
+      const newStatus = els.bulkStatus.value;
+      await apiPost('bulkUpdateStatus', { rowIndices: selected, newStatus });
+      await load();
+    });
+
+    els.clearSel.addEventListener('click', () => {
+      document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
+      els.checkAll.checked = false;
+    });
+
+    els.rerun.addEventListener('click', async () => { await apiPost('rerunAutomations', {}); await load(); });
+    els.reload.addEventListener('click', load);
+
+    // ===== Init =====
+    load().catch(err => alert(err.message || String(err)));
+  </script>
+</body>
+</html>
