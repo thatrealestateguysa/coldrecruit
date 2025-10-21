@@ -1,410 +1,339 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cold Recruit Machine Dashboard</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cold Recruit Machine — WhatsApp Sender</title>
+  <link rel="icon" href="./assets/icon.png">
+  <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="theme-color" content="#111827">
   <style>
-    :root{
-      --bg:#0f141b;          /* page background */
-      --panel:#171e27;       /* cards/tables */
-      --panel-2:#1d2632;     /* inputs */
-      --text:#eaf0f7;        /* main text */
-      --muted:#a3afbf;       /* secondary */
-      --accent:#c70000;      /* KW red */
-      --border:#2b3647;      /* borders */
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    .wrap{max-width:1280px;margin:24px auto;padding:0 16px}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-    h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.2px;color:var(--accent)}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    button,select,input[type="text"]{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;outline:none}
-    button:hover,select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(199,0,0,.22)}
-
-    /* STATUS TABS */
-    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:8px 0 16px}
-    .stat{background:var(--panel);border:1px solid var(--border);padding:14px;border-radius:14px;text-align:center;cursor:pointer;transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease}
-    .stat{border-top:3px solid var(--accent)}
-    .stat .num{font-size:22px;font-weight:800;color:var(--accent)}
-    .stat .label{margin-top:6px;font-size:12px;color:var(--muted)}
-    .stat:hover{transform:translateY(-1px);border-color:var(--accent)}
-    .stat.active{box-shadow:inset 0 0 0 2px var(--accent);background:#0c1219}
-
-    /* TOOLBAR */
-    .sticky{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 80%, rgba(15,20,27,.6));padding-top:6px}
-    .toolbar{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;border-bottom:2px solid var(--accent);padding-bottom:10px;margin-bottom:12px}
-    .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .filters .label{font-size:12px;color:var(--muted);margin-right:6px}
-    .bulk{display:flex;gap:8px;align-items:center}
-
-    /* TABLE */
-    .table{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-    table{width:100%;border-collapse:collapse}
-    thead th{text-align:left;font-size:12px;color:var(--muted);background:#1a2230;padding:12px;border-bottom:2px solid var(--accent)}
-    tbody td{padding:12px;border-top:1px solid #233045;font-size:14px;vertical-align:middle}
-    tbody tr:nth-child(odd) td{background:#141c27}
-    a.link{color:#8fd0ff;text-decoration:none;font-weight:700}
-    a.link:hover{text-decoration:underline}
-
-    .status-select{background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px}
-    .checkbox{width:18px;height:18px}
-    .note{width:280px;max-width:280px;min-width:220px;height:36px;padding:8px 10px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);color:var(--text)}
-    .note.saving{border-color:#d97706}
-    .note.saved{border-color:#1f9d55}
-
-    .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel-2);font-size:11px;color:var(--muted)}
+    html, body { background:#0b0b0b; color:#e5e7eb; }
+    .card { background:#1f2937; }
+    .muted { color:#9ca3af; }
+    .btn { background:#e11d48; }
+    .btn:hover { opacity:.95 }
+    .chip { background:#111827; }
+    code { background:#111827; padding:2px 6px; border-radius:6px; }
   </style>
 </head>
-<body>
-  <div class="wrap">
-    <header>
-      <h1>Cold Recruit Machine</h1>
-      <div class="actions">
-        <button id="rerun">Re-run Automations</button>
-        <button id="reload">Reload</button>
-        <span id="conn" class="pill">Connecting…</span>
+<body class="min-h-screen">
+  <div class="max-w-7xl mx-auto p-4">
+    <header class="mb-6 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <img src="./assets/logo.png" alt="logo" class="h-10 w-auto rounded-lg" />
+        <h1 class="text-2xl font-semibold">Cold Recruit Machine — WhatsApp Sender</h1>
+      </div>
+      <div class="flex gap-2">
+        <button id="btnReload" class="px-3 py-2 rounded-lg card">Reload</button>
+        <button id="btnSettings" class="px-3 py-2 rounded-lg card">Settings</button>
       </div>
     </header>
 
-    <!-- Top status tabs -->
-    <div id="stats" class="stats" aria-label="Status tabs"></div>
+    <!-- Filters -->
+    <section class="mb-4 grid md:grid-cols-3 gap-3">
+      <div class="card rounded-xl p-3">
+        <label class="text-sm">Filter by Agency</label>
+        <select id="agencyFilter" multiple class="w-full rounded-lg p-2 h-28 card"></select>
+        <p class="text-xs muted mt-1">Hold Ctrl/Cmd to multi-select.</p>
+      </div>
+      <div class="card rounded-xl p-3">
+        <label class="text-sm">Search name or number</label>
+        <input id="searchBox" class="w-full rounded-lg p-2 card" placeholder="Type to filter..." />
+      </div>
+      <div class="flex items-end gap-2">
+        <button id="btnSelectAll" class="px-3 py-2 rounded-lg card">Select All (filtered)</button>
+        <button id="btnClearSel" class="px-3 py-2 rounded-lg card">Clear</button>
+      </div>
+    </section>
 
-    <div class="sticky">
-      <div class="toolbar">
-        <div class="filters">
-          <span class="label">Filters</span>
-          <select id="filterAgency">
-            <option value="__ALL__">Agency (all)</option>
-          </select>
-          <select id="filterStatus">
-            <option value="__ALL__">All statuses</option>
-          </select>
-          <input id="search" type="text" placeholder="Search name or surname…" style="min-width:260px" />
-          <button id="reset">Reset</button>
+    <!-- Table -->
+    <section class="card rounded-xl p-3">
+      <div class="overflow-auto">
+        <table class="w-full text-sm">
+          <thead class="muted">
+            <tr class="border-b border-neutral-700">
+              <th class="p-2"><input type="checkbox" id="checkAll"/></th>
+              <th class="p-2">Status</th>
+              <th class="p-2">Name</th>
+              <th class="p-2">Surname</th>
+              <th class="p-2">Cell Nr</th>
+              <th class="p-2">Agency</th>
+              <th class="p-2">Notes</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Composer -->
+    <section class="mt-6 grid lg:grid-cols-2 gap-4">
+      <!-- Images -->
+      <div class="card rounded-xl p-4">
+        <h2 class="font-semibold mb-2">Send Image + Caption</h2>
+        <div class="mb-3">
+          <label class="text-sm block mb-1">Caption (supports {'{name}'} {'{surname}'} {'{agency}'} {'{full_name}'})</label>
+          <textarea id="caption" rows="3" class="w-full rounded-lg p-2" style="background:#0b0b0b" placeholder="Hi {'{name}'}, quick intro from KW Explore..."></textarea>
         </div>
-        <div class="bulk">
-          <select id="bulkStatus" class="status-select"></select>
-          <button id="applyBulk">Apply to Selected</button>
-          <button id="clearSel">Clear</button>
+        <div class="mb-3">
+          <label class="text-sm block mb-1">Image</label>
+          <input id="imageFile" type="file" accept="image/*" class="block w-full text-sm" />
+          <img id="preview" class="mt-2 max-h-40 rounded-lg hidden" />
+        </div>
+        <div class="flex items-center gap-4 mb-3">
+          <label class="inline-flex items-center gap-2">
+            <input id="useCloudApiImg" type="radio" name="modeImg" checked>
+            <span>Send with Cloud API (image supported)</span>
+          </label>
+          <label class="inline-flex items-center gap-2">
+            <input id="useDeviceImg" type="radio" name="modeImg">
+            <span>Open on my device (text only)</span>
+          </label>
+        </div>
+        <div class="flex gap-3">
+          <button id="btnSendImage" class="px-4 py-2 btn rounded-xl">Send Image to Selected</button>
+          <span id="statusImg" class="text-sm muted"></span>
         </div>
       </div>
-    </div>
 
-    <div class="table">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:36px"><input id="checkAll" class="checkbox" type="checkbox" /></th>
-            <th>Status</th>
-            <th>WhatsApp</th>
-            <th>Name</th>
-            <th>Surname</th>
-            <th>Cell Nr</th>
-            <th>Email</th>
-            <th>Agency</th>
-            <th>Last Contact</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
-    </div>
+      <!-- Quick Text -->
+      <div class="card rounded-xl p-4">
+        <h2 class="font-semibold mb-2">Quick Text (auto {'{name}'})</h2>
+        <div class="mb-3">
+          <label class="text-sm block mb-1">Message template</label>
+          <textarea id="quickText" rows="5" class="w-full rounded-lg p-2"
+            style="background:#0b0b0b"
+            placeholder="Hi {'{name}'}, this is Dawie from KW Explore. Are you open to a quick chat about your 2025 goals?"></textarea>
+          <p class="text-xs muted mt-1">Placeholders: <code>{'{name}'}</code> <code>{'{surname}'}</code> <code>{'{agency}'}</code> <code>{'{full_name}'}</code></p>
+        </div>
+        <div class="flex items-center gap-4 mb-3">
+          <label class="inline-flex items-center gap-2">
+            <input id="useCloudApiText" type="radio" name="modeText" checked>
+            <span>Send with Cloud API</span>
+          </label>
+          <label class="inline-flex items-center gap-2">
+            <input id="useDeviceText" type="radio" name="modeText">
+            <span>Open device links (wa.me)</span>
+          </label>
+        </div>
+        <div class="flex gap-3">
+          <button id="btnSendText" class="px-4 py-2 btn rounded-xl">Send Text to Selected</button>
+          <span id="statusText" class="text-sm muted"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Queue -->
+    <section class="mt-6 card rounded-xl p-4">
+      <h2 class="font-semibold mb-2">Queue</h2>
+      <div id="queue" class="text-sm space-y-1 max-h-72 overflow-auto"></div>
+    </section>
   </div>
 
+  <!-- Settings (optional override) -->
+  <dialog id="settingsDlg" class="rounded-xl p-4 card w-[32rem]">
+    <h3 class="font-semibold text-lg mb-3">Settings</h3>
+    <label class="block text-sm mb-1">Override Web App URL</label>
+    <input id="webAppUrl" class="w-full rounded-lg p-2 mb-4" style="background:#0b0b0b" placeholder="leave blank to use wired URL">
+    <div class="flex justify-end gap-2">
+      <button id="btnSaveSecrets" class="px-3 py-2 btn rounded-lg">Save URL</button>
+      <button id="btnCloseSettings" class="px-3 py-2 rounded-lg" style="background:#374151">Close</button>
+    </div>
+    <p class="text-xs muted mt-2">Note: Token setup for Cloud API is done on the backend with <code>action=setsecrets</code>.</p>
+  </dialog>
+
   <script>
-    // ===== CONFIG =====
-    const API_BASE = "https://script.google.com/macros/s/AKfycbwyURwawIavmhuOgHgnfXcfRpSqFi615TC5te9GP830s3hWdoOauQjykNlp1Xp74Z5QsQ/exec"; // your live Apps Script Web App
+    // ===== Wired URL (can be overridden in Settings and stored in localStorage) =====
+    const WIRED_URL = "https://script.google.com/macros/s/AKfycbyiGd7Jhqv3RX3LuJfPt5er_wYL7_4Nkl263Mn6EMkKTUyBLEW2wMtOXBW7lOOq2bjaBA/exec";
+    let WEB_APP_URL = localStorage.getItem('crm_webapp') || WIRED_URL;
 
-    const STATUS_OPTIONS = [
-      "To Contact","Whatsapp","Reply","Keen to meet","Cultivate",
-      "Invite to events","Not interested","No Whatsapp","Unsubscribe","Referred"
-    ];
+    const state = { recipients: [], filtered: [], selected: new Set() };
+    const el = id => document.getElementById(id);
+    const fmtName = r => [r.name, r.surname].filter(Boolean).join(' ');
 
-    // Friendly header aliasing (front-end only) so we read sheets that aren't perfect
-    const HEADER_ALIASES = {
-      'STATUS': ["STATUS","STATE"],
-      'WHATSAPP LINK': ["WHATSAPP LINK","WHATSAPP","WA LINK","WALINK","WHATSAPP_URL","WA_URL"],
-      'NAME': ["NAME","FIRST","FIRST NAME"],
-      'SURNAME': ["SURNAME","LAST","LAST NAME"],
-      'CELL NR': ["CELL NR","CELL","CELL PHONE","CELLPHONE","MOBILE","PHONE","CONTACT NUMBER"],
-      'EMAIL': ["EMAIL","E-MAIL","MAIL"],
-      'AGENCY': ["AGENCY","OFFICE","BROKER","BROKERAGE","COMPANY"],
-      'LAST CONTACT DATE': ["LAST CONTACT DATE","LAST CONTACT","LAST CONTACTED","LAST UPDATED"],
-      'NOTES': ["NOTES","NOTE","COMMENTS","COMMENT","REMARKS"]
-    };
-
-    const els = {
-      stats: document.getElementById('stats'),
-      rows: document.getElementById('rows'),
-      search: document.getElementById('search'),
-      filterAgency: document.getElementById('filterAgency'),
-      filterStatus: document.getElementById('filterStatus'),
-      reset: document.getElementById('reset'),
-      bulkStatus: document.getElementById('bulkStatus'),
-      applyBulk: document.getElementById('applyBulk'),
-      clearSel: document.getElementById('clearSel'),
-      checkAll: document.getElementById('checkAll'),
-      rerun: document.getElementById('rerun'),
-      reload: document.getElementById('reload'),
-      conn: document.getElementById('conn')
-    };
-
-    let raw = []; // full sheet
-    let map = {}; // header -> index (0-based)
-
-    function headerMap(headers){
-      const idx = {};
-      const upper = headers.map(h => String(h||'').trim().toUpperCase());
-      const keys = Object.keys(HEADER_ALIASES);
-      keys.forEach(key => {
-        const candidates = HEADER_ALIASES[key].map(s => s.toUpperCase());
-        let found = -1;
-        for(let i=0;i<upper.length;i++){
-          if(candidates.includes(upper[i])){ found = i; break; }
-        }
-        if(found === -1){ // partial contains fallback
-          for(let i=0;i<upper.length;i++){
-            if(!upper[i]) continue;
-            if(candidates.some(a => upper[i].includes(a))){ found = i; break; }
-          }
-        }
-        idx[key] = (found >= 0 ? found : -1);
-      });
-      return idx;
+    function personalize(text, r) {
+      return (text || '')
+        .replace(/\{\{name\}\}/g, r.name || '')
+        .replace(/\{\{surname\}\}/g, r.surname || '')
+        .replace(/\{\{agency\}\}/g, r.agency || '')
+        .replace(/\{\{full_name\}\}/g, [r.name, r.surname].filter(Boolean).join(' '));
     }
 
-    const fmtDate = v => {
-      if(!v) return '';
-      const d = new Date(v);
-      return isNaN(d) ? '' : d.toLocaleDateString();
-    };
+    async function loadAll() {
+      const url = new URL(WEB_APP_URL);
+      url.searchParams.set('action', 'recipients');
+      const res = await fetch(url.toString());
+      const js = await res.json();
+      state.recipients = js.recipients || [];
+      await buildAgencies();
+      applyFilter();
+    }
+    async function buildAgencies() {
+      const url = new URL(WEB_APP_URL);
+      url.searchParams.set('action', 'agencies');
+      const res = await fetch(url.toString());
+      const { agencies } = await res.json();
+      const sel = el('agencyFilter');
+      sel.innerHTML = '';
+      (agencies || []).forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a; opt.textContent = a;
+        sel.appendChild(opt);
+      });
+    }
 
-    const option = (v, sel=false) => `<option value="${v}" ${sel?'selected':''}>${v}</option>`;
+    function applyFilter() {
+      const sel = Array.from(el('agencyFilter').selectedOptions).map(o=>o.value);
+      const q = (el('searchBox').value || '').trim().toLowerCase();
+      state.filtered = state.recipients.filter(r => {
+        const okAgency = sel.length ? sel.includes(r.agency) : true;
+        const inText = (fmtName(r)+' '+(r.cell||'')+' '+(r.agency||'')).toLowerCase().includes(q);
+        return okAgency && inText;
+      });
+      renderRows();
+    }
 
-    function toRows(data){
-      const out = [];
-      for(let i=1;i<data.length;i++){
-        const r = data[i]||[];
-        out.push({
-          _i: i,         // sheet row index in data[][]
-          _r0: i-1,      // 0-based row index expected by backend
-          status: r[map['STATUS']] ?? '',
-          wa: r[map['WHATSAPP LINK']] ?? '',
-          name: r[map['NAME']] ?? '',
-          surname: r[map['SURNAME']] ?? '',
-          cell: r[map['CELL NR']] ?? '',
-          email: r[map['EMAIL']] ?? '',
-          agency: r[map['AGENCY']] ?? '',
-          last: r[map['LAST CONTACT DATE']] ?? '',
-          notes: r[map['NOTES']] ?? ''
+    function renderRows() {
+      const tb = el('rows'); tb.innerHTML = '';
+      state.filtered.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-neutral-700';
+        tr.innerHTML = `
+          <td class="p-2"><input type="checkbox" data-id="${idx}" ${state.selected.has(idx)?'checked':''}></td>
+          <td class="p-2">${r.status || ''}</td>
+          <td class="p-2">${r.name || ''}</td>
+          <td class="p-2">${r.surname || ''}</td>
+          <td class="p-2">${r.cell || ''}</td>
+          <td class="p-2">${r.agency || ''}</td>
+          <td class="p-2">${r.notes || ''}</td>
+        `;
+        tb.appendChild(tr);
+      });
+    }
+
+    function readImageAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
+      });
+    }
+
+    async function sendImages() {
+      const indices = Array.from(state.selected);
+      if (indices.length === 0) return alert('Select at least one contact.');
+      const caption = el('caption').value || '';
+      const recipients = indices.map(i => { const r = state.filtered[i]; return { name:r.name, surname:r.surname, agency:r.agency, phone:r.cell }; });
+      const useCloud = el('useCloudApiImg').checked;
+
+      if (useCloud) {
+        const file = el('imageFile').files[0];
+        if (!file) return alert('Choose an image.');
+        const base64 = await readImageAsBase64(file);
+        el('statusImg').textContent = 'Sending...';
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'bulksendimage',
+            useCloudApi: true,
+            recipients,
+            caption,
+            imageBase64: base64,
+            imageMime: file.type
+          })
         });
-      }
-      return out;
-    }
-
-    function uniqueAgencies(rows){
-      const s = new Set();
-      rows.forEach(r => { const a=(r.agency||'').toString().trim(); if(a) s.add(a); });
-      return Array.from(s).sort((a,b)=>a.localeCompare(b));
-    }
-
-    function populateFilters(rows){
-      // Agency
-      const agencies = uniqueAgencies(rows);
-      els.filterAgency.innerHTML = '<option value="__ALL__">Agency (all)</option>' + agencies.map(a=>option(a)).join('');
-      // Status
-      els.filterStatus.innerHTML = '<option value="__ALL__">All statuses</option>' + STATUS_OPTIONS.map(s=>option(s)).join('');
-      // Bulk
-      if(!els.bulkStatus.options.length){ els.bulkStatus.innerHTML = STATUS_OPTIONS.map(s=>option(s)).join(''); }
-    }
-
-    function applyFilters(rows){
-      const q = (els.search.value||'').trim().toLowerCase();
-      const agency = els.filterAgency.value;
-      const status = els.filterStatus.value;
-      let out = rows;
-      if(agency && agency !== '__ALL__') out = out.filter(r => String(r.agency||'') === agency);
-      if(status && status !== '__ALL__') out = out.filter(r => String(r.status||'') === status);
-      if(q){ out = out.filter(r => `${r.name} ${r.surname}`.toLowerCase().includes(q)); }
-      return out;
-    }
-
-    function renderStats(rows){
-      const counts = { total: rows.length };
-      STATUS_OPTIONS.forEach(s => counts[s] = 0);
-      rows.forEach(r => { if(counts.hasOwnProperty(r.status)) counts[r.status]++; });
-      const active = (els.filterStatus.value && els.filterStatus.value !== '__ALL__') ? els.filterStatus.value : '__TOTAL__';
-      const blocks = [{key:'__TOTAL__', label:'Total', num:counts.total}]
-        .concat(STATUS_OPTIONS.map(s=>({key:s,label:s,num:counts[s]})));
-      els.stats.innerHTML = blocks.map(b => `
-        <div class="stat ${active===b.key?'active':''}" data-status="${b.key}" role="button" tabindex="0" aria-pressed="${active===b.key}">
-          <div class="num">${b.num||0}</div>
-          <div class="label">${b.label}</div>
-        </div>`).join('');
-      // Click/keyboard
-      els.stats.querySelectorAll('.stat').forEach(st => {
-        const go = async () => {
-          const key = st.getAttribute('data-status');
-          const selected = getSelectedRows0();
-          // If rows selected & a specific status tab clicked -> move them immediately
-          if(key !== '__TOTAL__' && selected.length){
-            await apiPost('bulkUpdateStatus', { rowIndices: selected, newStatus: key });
-            els.filterStatus.value = key; // focus filtered view after move
-            await load();
-            scrollToTable();
-            return;
-          }
-          // else: act as a filter tab
-          els.filterStatus.value = (key==='__TOTAL__')?'__ALL__':key;
-          refresh();
-          scrollToTable();
-        };
-        st.addEventListener('click', go);
-        st.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); }});
-      });
-    }
-
-    function renderTable(rows){
-      els.rows.innerHTML = rows.map(r => {
-        const wa = r.wa ? `<a class=\"link\" href=\"${r.wa}\" target=\"_blank\" rel=\"noopener\">Open Chat</a>` : '';
-        const statusSel = `<select class=\"status-select\" data-r0=\"${r._r0}\">`+
-          STATUS_OPTIONS.map(s=>`<option value=\"${s}\" ${s===r.status?'selected':''}>${s}</option>`).join('')+
-          `</select>`;
-        const noteVal = String(r.notes||'').replace(/&/g,'&amp;').replace(/\"/g,'&quot;');
-        const note = `<input class=\"note\" type=\"text\" value=\"${noteVal}\" data-r0=\"${r._r0}\" placeholder=\"Add note…\" />`;
-        return `<tr>
-          <td><input class=\"checkbox row-check\" type=\"checkbox\" data-r0=\"${r._r0}\" /></td>
-          <td>${statusSel}</td>
-          <td>${wa}</td>
-          <td>${r.name||''}</td>
-          <td>${r.surname||''}</td>
-          <td>${r.cell||''}</td>
-          <td>${r.email||''}</td>
-          <td>${r.agency||''}</td>
-          <td>${fmtDate(r.last)}</td>
-          <td>${note}</td>
-        </tr>`;
-      }).join('');
-
-      // Status change handlers
-      document.querySelectorAll('select.status-select').forEach(sel => {
-        sel.addEventListener('change', async e => {
-          const r0 = Number(e.target.getAttribute('data-r0'));
-          const newStatus = e.target.value;
-          await apiPost('updateSingleStatus', { rowIndex: r0, newStatus });
-          await load(); // reflect LAST CONTACT, WA changes
-        });
-      });
-
-      // Notes handlers (debounced save on input + blur)
-      document.querySelectorAll('input.note').forEach(inp => {
-        const save = debounce(async () => {
-          const r0 = Number(inp.getAttribute('data-r0'));
-          inp.classList.add('saving');
-          await apiPost('updateNote', { rowIndex: r0, note: inp.value });
-          inp.classList.remove('saving');
-          inp.classList.add('saved');
-          setTimeout(()=>inp.classList.remove('saved'), 900);
-        }, 400);
-        inp.addEventListener('input', save);
-        inp.addEventListener('blur', async () => {
-          const r0 = Number(inp.getAttribute('data-r0'));
-          inp.classList.add('saving');
-          await apiPost('updateNote', { rowIndex: r0, note: inp.value });
-          inp.classList.remove('saving');
-          inp.classList.add('saved');
-          setTimeout(()=>inp.classList.remove('saved'), 900);
-        });
-      });
-    }
-
-    function refresh(){
-      const rows = toRows(raw);
-      const filtered = applyFilters(rows);
-      renderStats(filtered);
-      renderTable(filtered);
-    }
-
-    function ensureFrontHeaders(){
-      const required = ['STATUS','WHATSAPP LINK','NAME','SURNAME','CELL NR','EMAIL','AGENCY','LAST CONTACT DATE','NOTES'];
-      const missing = required.filter(k => (map[k] ?? -1) < 0);
-      if(missing.length){
-        alert('Your sheet is missing these headers or named differently: '+missing.join(', ')+'\nOpen the sheet and run: Cold Recruit Machine → ► Run First-Time Setup.');
-      }
-    }
-
-    async function load(){
-      try{
-        const res = await fetch(API_BASE + '?t=' + Date.now(), { cache:'no-store' });
         const json = await res.json();
-        if(json.result !== 'success') throw new Error(json.message || 'Failed to load');
-        raw = json.data || [];
-        map = headerMap(raw[0] || []);
-        ensureFrontHeaders();
-        const rows = toRows(raw);
-        populateFilters(rows);
-        refresh();
-        if(els.conn) els.conn.textContent = `Connected • ${Math.max(0, (raw.length||1)-1)} rows`;
-      }catch(err){
-        console.error(err);
-        if(els.conn) els.conn.textContent = 'Error connecting';
-        throw err;
+        renderQueue(json.results || []);
+        el('statusImg').textContent = json.ok ? 'Done' : (json.error || 'Error');
+      } else {
+        // Device fallback (text-only)
+        recipients.forEach(r => {
+          const to = (r.phone || '').replace(/[^\d+]/g,'').replace(/^\+/, '');
+          const url = `https://wa.me/${to}?text=${encodeURIComponent(personalize(caption, r))}`;
+          window.open(url, '_blank');
+        });
+        el('statusImg').textContent = 'Opened device links. Attach the image manually.';
       }
     }
 
-    // ===== API helpers =====
-    async function apiPost(action, payload){
-      const res = await fetch(API_BASE + '?t=' + Date.now(), {
-        method:'POST',
-        headers:{'Content-Type':'application/json','Cache-Control':'no-cache'},
-        body: JSON.stringify({ action, payload })
+    async function sendTexts() {
+      const indices = Array.from(state.selected);
+      if (indices.length === 0) return alert('Select at least one contact.');
+      const tmpl = el('quickText').value || '';
+      const recipients = indices.map(i => { const r = state.filtered[i]; return { name:r.name, surname:r.surname, agency:r.agency, phone:r.cell }; });
+      const useCloud = el('useCloudApiText').checked;
+      el('statusText').textContent = 'Sending...';
+
+      if (useCloud) {
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'bulksendtext',
+            useCloudApi: true,
+            textTemplate: tmpl,
+            recipients
+          })
+        });
+        const json = await res.json();
+        renderQueue(json.results || []);
+        el('statusText').textContent = json.ok ? 'Done' : (json.error || 'Error');
+      } else {
+        const results = [];
+        for (const r of recipients) {
+          const to = (r.phone || '').replace(/[^\d+]/g,'').replace(/^\+/, '');
+          const url = `https://wa.me/${to}?text=${encodeURIComponent(personalize(tmpl, r))}`;
+          window.open(url, '_blank');
+          results.push({ phone: '+'+to, status:'LINK_TEXT', link:url });
+        }
+        renderQueue(results);
+        el('statusText').textContent = 'Device links opened.';
+      }
+    }
+
+    function renderQueue(results) {
+      const box = el('queue'); box.innerHTML = '';
+      (results || []).forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'p-2 rounded-lg chip';
+        div.textContent = `${r.phone} — ${r.status}${r.messageId ? ' ('+r.messageId+')' : ''}${r.link ? ' — link opened' : ''}${r.error ? ' — '+r.error : ''}`;
+        box.appendChild(div);
       });
-      const json = await res.json();
-      if(json.result !== 'success'){ alert(json.message || 'Action failed'); }
-      return json;
     }
 
-    // ===== UX helpers =====
-    function getSelectedRows0(){
-      return Array.from(document.querySelectorAll('.row-check:checked')).map(cb => Number(cb.getAttribute('data-r0')));
-    }
-    function scrollToTable(){
-      const tbl = document.querySelector('.table'); if(tbl) tbl.scrollIntoView({ behavior:'smooth', block:'start' });
-      setTimeout(()=>{ const first = document.querySelector('select.status-select'); if(first) first.focus(); }, 250);
-    }
-    function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn.apply(this,args), ms); }; }
-
-    // ===== Events =====
-    els.search.addEventListener('input', refresh);
-    els.filterAgency.addEventListener('change', refresh);
-    els.filterStatus.addEventListener('change', refresh);
-    els.reset.addEventListener('click', () => { els.search.value=''; els.filterAgency.value='__ALL__'; els.filterStatus.value='__ALL__'; refresh(); });
-
-    els.checkAll.addEventListener('change', (e) => {
-      document.querySelectorAll('.row-check').forEach(cb => cb.checked = e.target.checked);
+    // Events
+    el('btnSettings').onclick = () => el('settingsDlg').showModal();
+    el('btnCloseSettings').onclick = () => el('settingsDlg').close();
+    el('btnSaveSecrets').onclick = () => {
+      const u = el('webAppUrl').value.trim();
+      if (u) { WEB_APP_URL = u; localStorage.setItem('crm_webapp', u); alert('Saved. Reload to apply.'); }
+      else { WEB_APP_URL = WIRED_URL; localStorage.removeItem('crm_webapp'); alert('Using wired URL.'); }
+    };
+    el('btnReload').onclick = loadAll;
+    el('btnSelectAll').onclick = () => { state.selected = new Set(state.filtered.map((_,i)=>i)); renderRows(); };
+    el('btnClearSel').onclick = () => { state.selected.clear(); renderRows(); };
+    el('checkAll').onchange = (e) => { if (e.target.checked) state.selected = new Set(state.filtered.map((_,i)=>i)); else state.selected.clear(); renderRows(); };
+    el('rows').addEventListener('change', (e) => {
+      const idx = Number(e.target.dataset.id);
+      if (!Number.isNaN(idx)) { if (e.target.checked) state.selected.add(idx); else state.selected.delete(idx); }
     });
+    el('agencyFilter').onchange = applyFilter;
+    el('searchBox').oninput = applyFilter;
+    el('imageFile').onchange = () => {
+      const f = el('imageFile').files[0];
+      if (!f) return el('preview').classList.add('hidden');
+      el('preview').src = URL.createObjectURL(f);
+      el('preview').classList.remove('hidden');
+    };
+    el('btnSendImage').onclick = sendImages;
+    el('btnSendText').onclick = sendTexts;
 
-    els.applyBulk.addEventListener('click', async () => {
-      const selected = getSelectedRows0();
-      if(!selected.length) return alert('Select at least one row');
-      const newStatus = els.bulkStatus.value;
-      await apiPost('bulkUpdateStatus', { rowIndices: selected, newStatus });
-      await load();
-    });
-
-    els.clearSel.addEventListener('click', () => {
-      document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
-      els.checkAll.checked = false;
-    });
-
-    els.rerun.addEventListener('click', async () => { await apiPost('rerunAutomations', {}); await load(); });
-    els.reload.addEventListener('click', load);
-
-    // ===== Init =====
-    load().catch(err => alert(err.message || String(err)));
+    // boot
+    loadAll();
   </script>
 </body>
 </html>
